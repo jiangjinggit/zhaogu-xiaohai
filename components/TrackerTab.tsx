@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DailyLog, LogType } from '../types';
 import { analyzeDailyLogs } from '../services/geminiService';
-import { Plus, Activity, Droplets, Utensils, Moon, Trash2, Coffee, Clock, ArrowRight, Sparkles } from 'lucide-react';
+import { Plus, Activity, Droplets, Utensils, Moon, Trash2, Coffee, Clock, ArrowRight, Sparkles, Mic, MicOff } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 // Helper to translate LogType to Chinese
@@ -23,6 +23,10 @@ export const TrackerTab: React.FC = () => {
   const [type, setType] = useState<LogType>(LogType.FOOD);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Voice Input State
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('toddler_logs');
@@ -58,6 +62,52 @@ export const TrackerTab: React.FC = () => {
     const result = await analyzeDailyLogs(logs);
     setAnalysis(result);
     setLoading(false);
+  };
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert("您的浏览器暂不支持语音输入功能，请使用 Chrome 或 Safari。");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setDetail((prev) => {
+        const spacer = prev.length > 0 ? ' ' : '';
+        return prev + spacer + transcript;
+      });
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   const getIconInfo = (t: LogType) => {
@@ -105,17 +155,31 @@ export const TrackerTab: React.FC = () => {
         </div>
 
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={detail}
-            onChange={(e) => setDetail(e.target.value)}
-            placeholder={`记录${getLogTypeLabel(type)}的详情...`}
-            className="flex-1 px-5 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-400 outline-none text-slate-700 placeholder-slate-400 transition-all"
-            onKeyDown={(e) => e.key === 'Enter' && addLog()}
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={detail}
+              onChange={(e) => setDetail(e.target.value)}
+              placeholder={`输入或点击话筒说话...`}
+              className="w-full pl-5 pr-12 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-400 outline-none text-slate-700 placeholder-slate-400 transition-all"
+              onKeyDown={(e) => e.key === 'Enter' && addLog()}
+            />
+            <button
+              onClick={toggleVoiceInput}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all ${
+                isListening 
+                  ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-200' 
+                  : 'text-slate-400 hover:text-rose-500 hover:bg-slate-100'
+              }`}
+              title="语音输入"
+            >
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+          </div>
+          
           <button 
             onClick={addLog}
-            className="bg-gradient-to-r from-rose-500 to-rose-600 text-white px-6 py-3 rounded-2xl font-bold hover:shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
+            className="bg-gradient-to-r from-rose-500 to-rose-600 text-white px-6 py-3 rounded-2xl font-bold hover:shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all shrink-0"
           >
             添加
           </button>

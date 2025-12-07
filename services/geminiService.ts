@@ -1,9 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DailyLog, AIResponse } from "../types";
 
-const apiKey = process.env.API_KEY;
-// Ensure we have a client instance. Note: In a real app, handle missing key gracefully in UI.
-const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy' });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const FLASH_MODEL = 'gemini-2.5-flash';
 // "Nano Banana Pro" maps to gemini-3-pro-image-preview according to instructions
