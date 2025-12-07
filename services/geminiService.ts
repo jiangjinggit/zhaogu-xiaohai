@@ -1,10 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DailyLog, AIResponse } from "../types";
 
+// The API key must be obtained exclusively from the environment variable process.env.API_KEY.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const FLASH_MODEL = 'gemini-2.5-flash';
-// "Nano Banana Pro" maps to gemini-3-pro-image-preview according to instructions
+// "Nano Banana Pro" maps to gemini-3-pro-image-preview
 const IMAGE_MODEL = 'gemini-3-pro-image-preview'; 
 
 /**
@@ -119,7 +120,6 @@ export const getEmergencyStepWithImage = async (situation: string): Promise<{ te
     const guideText = textResponse.text || "请遵循标准的急救流程。";
 
     // 2. Generate an illustrative image using Nano Banana Pro (Gemini 3 Pro Image Preview)
-    // We ask for an educational illustration style to avoid photorealistic gore or distress.
     const imagePrompt = `Educational medical illustration showing the correct first aid position for a toddler regarding: ${situation}. Simple, clear line art or soft color style. Safe for viewing. No text in image.`;
     
     let imageUrl: string | undefined = undefined;
@@ -131,7 +131,7 @@ export const getEmergencyStepWithImage = async (situation: string): Promise<{ te
             config: {
                 imageConfig: {
                     aspectRatio: "16:9",
-                    imageSize: "1K" // Use high quality
+                    imageSize: "1K"
                 }
             }
         });
@@ -145,7 +145,6 @@ export const getEmergencyStepWithImage = async (situation: string): Promise<{ te
         }
     } catch (imgError) {
         console.error("Image generation failed", imgError);
-        // Fallback: We return text only if image fails
     }
 
     return { text: guideText, imageUrl };
