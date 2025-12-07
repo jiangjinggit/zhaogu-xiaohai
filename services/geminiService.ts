@@ -1,8 +1,31 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DailyLog, AIResponse } from "../types";
 
-// The API key must be obtained exclusively from the environment variable process.env.API_KEY.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// 获取 API Key 的逻辑优化：
+// 1. 优先尝试 Vite/Vercel 环境的 import.meta.env.VITE_API_KEY
+// 2. 回退尝试 process.env.API_KEY (Node环境或某些特殊配置)
+// 3. 如果都为空，给一个空字符串防止初始化崩溃，并在控制台报错
+const getApiKey = () => {
+  try {
+    // @ts-ignore: Vite defines import.meta.env
+    if (import.meta && import.meta.env && import.meta.env.VITE_API_KEY) {
+      // @ts-ignore
+      return import.meta.env.VITE_API_KEY;
+    }
+  } catch (e) {
+    // Ignore error if import.meta is not defined
+  }
+  return process.env.API_KEY;
+};
+
+const apiKey = getApiKey();
+
+if (!apiKey) {
+  console.error("【严重错误】API Key 未找到！请在 Vercel 环境变量中设置 'VITE_API_KEY'。");
+}
+
+// 初始化时传入 apiKey，如果为空字符串，SDK 可能会报错，但我们已在上方打印了错误信息
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
 const FLASH_MODEL = 'gemini-2.5-flash';
 // "Nano Banana Pro" maps to gemini-3-pro-image-preview
